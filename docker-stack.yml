@@ -1,0 +1,23 @@
+# docker-stack.yml
+version: '3.8'
+services:
+  web:
+    image: my_flask_app:latest
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+      restart_policy:
+        condition: on-failure
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure

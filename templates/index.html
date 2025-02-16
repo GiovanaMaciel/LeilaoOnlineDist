@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Plataforma de Leilão Online</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    /* Estilos customizados */
+    body {
+      background-color: #f8f9fa;
+    }
+    .container-custom {
+      margin-top: 20px;
+    }
+    .column-left {
+      border-right: 1px solid #dee2e6;
+      height: 80vh;
+    }
+    /* Reduzindo a altura do bloco de leilões ativos */
+    .scrollable-list {
+      max-height: 40vh;
+      overflow-y: auto;
+    }
+    .column-right {
+      height: 80vh;
+      overflow-y: auto;
+    }
+    .list-group-item {
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    .list-group-item:hover {
+      background-color: #e9ecef;
+    }
+    /* Animação de botões */
+    button {
+      transition: transform 0.2s ease, background-color 0.2s ease;
+    }
+    button:hover {
+      transform: scale(1.05);
+    }
+    /* Estilo para mensagem fixa em leilão encerrado */
+    .auction-closed-message {
+      font-weight: bold;
+      color: #dc3545;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Leilão Online</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+              aria-controls="navbarNav" aria-expanded="false" aria-label="Alternar navegação">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+         <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="#active-auctions">Leilões Ativos</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#create-auction">Criar Leilão</a>
+            </li>
+         </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container container-custom">
+    <div class="row">
+      <!-- Coluna Esquerda: Leilões ativos e criação -->
+      <div class="col-md-4 column-left">
+        <h4 id="active-auctions" class="mb-3">Leilões Ativos</h4>
+        <div id="auctionsListContainer" class="scrollable-list">
+          <ul id="auctionsList" class="list-group"></ul>
+        </div>
+        <hr>
+        <h4 id="create-auction" class="mb-3">Criar Leilão</h4>
+        <form id="auctionForm">
+          <div class="mb-3">
+            <input type="text" class="form-control" id="title" placeholder="Título" required>
+          </div>
+          <div class="mb-3">
+            <textarea class="form-control" id="description" placeholder="Descrição" required></textarea>
+          </div>
+          <div class="mb-3">
+            <input type="number" class="form-control" id="starting_price" placeholder="Preço Inicial" required>
+          </div>
+          <div class="mb-3">
+            <input type="datetime-local" class="form-control" id="end_time" required>
+          </div>
+          <button type="submit" class="btn btn-success w-100">Criar Leilão</button>
+        </form>
+        <div id="message" class="mt-3"></div>
+      </div>
+      <!-- Coluna Direita: Detalhes e lances do leilão selecionado -->
+      <div class="col-md-8 column-right">
+        <div id="auctionDetailsContainer" class="p-3">
+          <h4>Selecione um leilão para ver os detalhes</h4>
+        </div>
+        <div id="bid-section" class="p-3" style="display:none;">
+          <h4>Faça um Lance</h4>
+          <form id="bidForm">
+            <div class="mb-3">
+              <input type="number" class="form-control" id="bid_value" placeholder="Seu Lance" required>
+            </div>
+            <div class="mb-3">
+              <input type="text" class="form-control" id="bidder" placeholder="Seu Nome" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Enviar Lance</button>
+          </form>
+          <hr>
+          <h4>Lances</h4>
+          <ul id="bidsList" class="list-group"></ul>
+          <div id="bidMessage" class="mt-2"></div>
+          <div id="auctionClosedMessage" class="auction-closed-message"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/script.js"></script>
+</body>
+</html>
