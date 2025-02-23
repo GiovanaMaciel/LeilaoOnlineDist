@@ -56,36 +56,57 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadAuctions() {
         const res = await fetch('/view-auctions');
         let auctions = await res.json();
-        auctions.sort((a, b) => new Date(a.end_time) - new Date(b.end_time));
+        const now = new Date();
+    
+        // Ordena: leilões ativos primeiro e, em seguida, os encerrados.
+        // Em caso de empate na data, utiliza o ID como critério secundário.
+        auctions.sort((a, b) => {
+            const aDate = new Date(a.end_time);
+            const bDate = new Date(b.end_time);
+            const aClosed = now >= aDate;
+            const bClosed = now >= bDate;
+    
+            // Leilões encerrados vão para o final
+            if (aClosed && !bClosed) return 1;
+            if (!aClosed && bClosed) return -1;
+    
+            // Se ambos estão ativos ou ambos encerrados, ordena pela data de encerramento
+            if (aDate.getTime() !== bDate.getTime()) {
+                return aDate - bDate;
+            } else {
+                // Critério secundário: comparar o ID (convertendo para número)
+                return parseInt(a.id) - parseInt(b.id);
+            }
+        });
+    
         auctionsList.innerHTML = '';
         auctions.forEach(auction => {
             const li = document.createElement('li');
             li.className = 'list-group-item';
             li.id = `auction-${auction.id}`;
-
+    
             // Criação do círculo de status
             const statusCircle = document.createElement('span');
             statusCircle.classList.add('status-circle');
-
+    
             const endDate = new Date(auction.end_time);
-            const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
             const auctionDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-
-            if (auction.active !== "true") {
+    
+            // Define o status com base na data
+            if (now >= endDate) {
                 statusCircle.classList.add('closed');
             } else if (auctionDate.getTime() === today.getTime() || auctionDate.getTime() === tomorrow.getTime()) {
                 statusCircle.classList.add('ending-soon');
             } else {
                 statusCircle.classList.add('active');
             }
-
+    
             // Verifica se há modificações comparando com o cache
             const prevAuction = auctionCache[auction.id];
             let updated = false;
             if (!prevAuction) {
-                // Leilão novo
                 updated = true;
             } else if (prevAuction.current_bid !== auction.current_bid || prevAuction.active !== auction.active) {
                 updated = true;
@@ -93,14 +114,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (updated) {
                 statusCircle.classList.add('pulse');
             }
-
+    
             // Aplica filtro
             const filterStatus = document.getElementById('filter-status').value;
             const filterKeyword = document.getElementById('filter-keyword').value.toLowerCase();
             let matchesFilter = true;
             if (filterStatus !== "all") {
-                if (filterStatus === "active" && auction.active !== "true") matchesFilter = false;
-                if (filterStatus === "closed" && auction.active === "true") matchesFilter = false;
+                if (filterStatus === "active" && now >= endDate) matchesFilter = false;
+                if (filterStatus === "closed" && now < endDate) matchesFilter = false;
                 if (filterStatus === "ending-soon") {
                     const isEndingSoon = (auctionDate.getTime() === today.getTime() || auctionDate.getTime() === tomorrow.getTime());
                     if (!isEndingSoon) matchesFilter = false;
@@ -114,22 +135,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             if (!matchesFilter) return;
-
+    
             // Atualiza cache
             auctionCache[auction.id] = auction;
-
+    
             li.appendChild(statusCircle);
             const text = document.createTextNode(`ID: ${auction.id} - ${auction.title} - Lance Atual: ${auction.current_bid}`);
             li.appendChild(text);
-
+    
             li.addEventListener('click', () => {
-                // Remove a animação pulsante quando o usuário visualiza o leilão
                 statusCircle.classList.remove('pulse');
                 viewAuction(auction.id);
             });
             auctionsList.appendChild(li);
         });
     }
+    
+    
 
     async function viewAuction(auctionId) {
         if (eventSource) {
@@ -137,7 +159,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const res = await fetch(`/auction/${auctionId}`);
         const auction = await res.json();
-
+    
+        // Processa a imagem do produto, se houver
         let productImageHTML = "";
         if (auction.image_url && auction.image_url.trim() !== "") {
             let productImage = auction.image_url;
@@ -145,43 +168,46 @@ document.addEventListener('DOMContentLoaded', () => {
                 productImage = "/static/" + productImage;
             }
             productImageHTML = `<img src="${productImage}" alt="Imagem do Produto"
-                                class="img-fluid mb-3" style="max-height:300px;"
-                                onerror="this.style.display='none';">`;
+                                 class="img-fluid mb-3" style="max-height:300px;"
+                                 onerror="this.style.display='none';">`;
         }
-
+    
+        // Determina se o leilão está encerrado com base na data de término
+        const auctionEnd = new Date(auction.end_time);
+        const now = new Date();
+        const auctionExpired = now >= auctionEnd;
+    
+        // Atualiza o container de detalhes do leilão
         auctionDetailsContainer.innerHTML = `
-        <h4>${auction.title}</h4>
-        ${productImageHTML}
-        <p>${auction.description}</p>
-        <p><strong>Lance Atual:</strong> ${auction.current_bid}</p>
-        <p><strong>Encerramento:</strong> ${new Date(auction.end_time).toLocaleString()}</p>
+            <h4>${auction.title}</h4>
+            ${productImageHTML}
+            <p>${auction.description}</p>
+            <p><strong>Lance Atual:</strong> ${auction.current_bid}</p>
+            <p><strong>Encerramento:</strong> ${auctionEnd.toLocaleString()}</p>
         `;
-        
-        bidsList.innerHTML = '';
-        if (auction.bids) {
-            auction.bids.forEach(bid => {
-                const li = document.createElement('li');
-                li.className = 'list-group-item';
-                li.textContent = `${bid.bidder}: ${bid.bid_value} (em ${new Date(bid.timestamp * 1000).toLocaleString()})`;
-                bidsList.appendChild(li);
-            });
-        }
-        // Se o leilão estiver encerrado, desabilita os campos e exibe mensagem fixa
-        if (auction.active !== "true") {
-            bidSection.style.display = 'block';
+    
+        // Exibe a seção de lances e bloqueia os campos se o leilão estiver encerrado
+        bidSection.style.display = 'block';
+        if (auctionExpired) {
             Array.from(bidForm.querySelectorAll("input")).forEach(input => input.disabled = true);
             bidForm.querySelector("button").disabled = true;
             auctionClosedMessageDiv.textContent = "Leilão encerrado. Não é possível enviar lances.";
+            // Não é necessário subscribir ao canal SSE se o leilão já está encerrado
+            if (eventSource) {
+                eventSource.close();
+            }
         } else {
-            bidSection.style.display = 'block';
             Array.from(bidForm.querySelectorAll("input")).forEach(input => input.disabled = false);
             bidForm.querySelector("button").disabled = false;
             auctionClosedMessageDiv.textContent = "";
+            subscribeAuction(auctionId);
         }
-        subscribeAuction(auctionId);
-        
+    
+        // Configura o envio de lances
         bidForm.onsubmit = async (e) => {
             e.preventDefault();
+            // Se o leilão já estiver encerrado, não envia o lance
+            if (auctionExpired) return;
             const bid_value = document.getElementById('bid_value').value;
             const bidder = document.getElementById('bidder').value;
             const res = await fetch('/place-bid', {
@@ -192,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             if (data.error) {
                 showBidMessage(data.error, "danger");
-                if(data.error.includes("encerrado")) {
+                if (data.error.includes("encerrado")) {
                     Array.from(bidForm.querySelectorAll("input")).forEach(input => input.disabled = true);
                     bidForm.querySelector("button").disabled = true;
                     auctionClosedMessageDiv.textContent = "Leilão encerrado. Não é possível enviar lances.";
@@ -203,6 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('bid_value').value = '';
         }
     }
+    
     
 
     function subscribeAuction(auctionId) {
@@ -228,5 +255,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Atualiza os leilões a cada 5 segundos
-    setInterval(loadAuctions, 5000);
+    setInterval(loadAuctions, 2000);
 });
