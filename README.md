@@ -17,7 +17,6 @@ A aplicação permite que os usuários:
 
 * **Interface de Usuário Moderna:**
   * Layout em duas colunas com barra de navegação.
-  * Área "Leilões Ativos" com efeito de hover e scroll personalizado, mantendo o formulário "Criar Leilão" sempre visível.
   * Animações em botões para uma melhor experiência do usuário.
   * Mensagens de feedback exibidas diretamente na interface.
 
@@ -37,10 +36,11 @@ A aplicação permite que os usuários:
 ├── Dockerfile               # Instruções para build da imagem Docker
 ├── docker-compose.yml       # Configuração para execução local
 ├── docker-stack.yml         # Configuração para deploy com Docker Swarm
-├── multipass_setup.sh       # Script para criação e configuração de VMs com Multipass
+├── setup_deploy.sh          # Script para criação e configuração de VMs e deploy
 ├── templates/               # Arquivos de templates HTML
 │   └── index.html           # Interface principal da aplicação
 └── static/                  # Arquivos estáticos (JS, CSS, imagens)
+    └── logo.png             # Logo da aplicação 
     └── script.js            # Código JavaScript para interatividade e SSE
 ```
 ## Tecnologias Utilizadas
@@ -52,51 +52,47 @@ A aplicação permite que os usuários:
 * **Bootstrap:** Framework CSS para um design responsivo e moderno.
 
 ## Como Executar
-### Pré-requisitos
-* **Docker e Docker Compose** instalados.
-* **Multipass** para criação de VMs (para deploy distribuído).
-* **Python 3.9+** (caso deseje rodar localmente sem Docker).
-
-### Execução Local
-1. **Clone o repositório:**
+### Executando com o script setup_deploy.sh
+Esse script automatiza todo o processo de criação das VMs, configuração do ambiente e deploy da aplicação.
+* **Clone o repositório**
 ```markdown
-git clone <URL-do-repositório>
-cd <nome-do-repositório>
+ git clone <URL-do-repositório>
+```
+É importante que você esteja a um repositório anterior ao da aplicação, e que o script "setup_deploy.sh" esteja nesse mesmo repositório anterior. Exemplo:
+```markdown
+├── Documents/               # Pasta anterior
+    └── LeilaoOnlineDist/    # Pasta da aplicação
+    └── setup_deploy.sh      # script para automatização
 ```
 
-2. **Instale as dependências:**
+* **Dê permissão de execução ao script**
 ```markdown
-pip install -r requirements.txt
+chmod +x setup_deploy.sh
+```
+* **Execute o script**
+```markdown
+./setup_deploy.sh
 ```
 
-3. **Inicie a aplicação com Docker Compose:**
+**Esse script irá:**
+* Criar 3 VMs (manager, worker1 e worker2).
+* Instalar o Docker nas VMs.
+* Configurar o Docker Swarm.
+* Compactar e transferir o projeto para a VM manager.
+* Construir a imagem Docker da aplicação.
+* Realizar o deploy utilizando Docker Swarm.
+
+**Acessando a aplicação**
+
+Após a execução do script, a aplicação estará rodando. Agora basta descobrir o IP das VMs manager, worker1, worker2:
 ```markdown
-docker-compose up --build
+multipass list
+```
+Com os IPs, acesse três abas no navegador com:
+```markdown
+http://<IP_DA_VM>:5000
 ```
 
-4. **Acesse a aplicação:**
-
-    Abra o navegador e vá para http://localhost:5000.
-
-### Deploy com Docker Swarm e Multipass
-1. **Configure as VMs:**
-
-    Execute o script multipass_setup.sh para criar e configurar as VMs.
-```markdown
-bash multipass_setup.sh
-```
-
-2. **Construa a imagem Docker:**
-```markdown
-docker build -t my_flask_app:latest .
-```
-
-3. **Realize o deploy usando Docker Swarm:**
-
-    No nó manager, execute:
-```markdown
-docker stack deploy -c docker-stack.yml my_stack
-```
 
 ## Uso da Aplicação
 * **Criar Leilão:**
