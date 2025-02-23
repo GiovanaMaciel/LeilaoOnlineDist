@@ -29,25 +29,27 @@ def create_auction():
     description = data.get("description", "").strip()
     starting_price = data.get("starting_price")
     end_time_str = data.get("end_time")
+    image_url = data.get("image_url", "").strip()  # Novo campo para a imagem
 
-    # Validação de data: deve ser no futuro
+    # Validação de data
     try:
         end_time_dt = datetime.strptime(end_time_str, "%Y-%m-%dT%H:%M")
     except (ValueError, TypeError):
         return jsonify({"error": "Formato de data inválido"}), 400
 
-    if end_time_dt <= datetime.now():
+    if end_time_dt < datetime.now():
         return jsonify({"error": "A data de término deve ser no futuro"}), 400
 
-    # Verifica se já existe um leilão com o mesmo título e descrição
+    # Verificação de leilão duplicado
     existing_ids = redis_client.smembers("auctions")
     for eid in existing_ids:
         auction = redis_client.hgetall(f"auction:{eid}")
         if auction:
-            if auction.get("title", "").strip().lower() == title.lower() and auction.get("description", "").strip().lower() == description.lower():
+            if auction.get("title", "").strip().lower() == title.lower() and \
+               auction.get("description", "").strip().lower() == description.lower():
                 return jsonify({"error": "Já existe um leilão com o mesmo título e descrição"}), 400
 
-    auction_id = get_new_auction_id()
+    auction_id = str(get_new_auction_id())
     auction_key = f"auction:{auction_id}"
     auction_data = {
         "id": auction_id,
@@ -56,9 +58,10 @@ def create_auction():
         "starting_price": starting_price,
         "current_bid": starting_price,
         "end_time": end_time_str,
-        "active": "true"
+        "active": "true",
+        "image_url": image_url  # Armazena a URL da imagem, se fornecida
     }
-    redis_client.hmset(auction_key, auction_data)
+    redis_client.hset(auction_key, mapping=auction_data)
     redis_client.sadd("auctions", auction_id)
     return jsonify({"auction_id": auction_id}), 201
 
@@ -121,6 +124,11 @@ def auction_details(auction_id):
     auction = redis_client.hgetall(auction_key)
     if not auction:
         return jsonify({"error": "Auction not found"}), 404
+
+    # Se a URL da imagem não estiver definida ou for vazia, utiliza um valor padrão
+    if not auction.get("image_url"):
+        auction["image_url"] = "default-product.png"
+    
     bids = redis_client.zrevrange(f"auction:{auction_id}:bids", 0, -1, withscores=True)
     bid_list = []
     for bid, score in bids:

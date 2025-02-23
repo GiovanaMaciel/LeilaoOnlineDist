@@ -7,75 +7,173 @@
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    /* Estilos customizados */
-    body {
-      background-color: #f8f9fa;
+    /* Definição de Variáveis para as Cores */
+    :root {
+      --primary-dark: #001F24;
+      --primary-accent: #C3A66A;
+      --secondary-light: #F8F9FA;
+      --text-color: #333333;
+      --neutral-gray: #6c757d;
+      --ending-soon: #D98659; /* Cor atual para "ending-soon" */
     }
+
+  
+    /* Estilos Globais */
+    body {
+      background-color: var(--secondary-light);
+      color: var(--text-color);
+      font-family: Arial, sans-serif;
+    }
+  
+    /* Navbar */
+    .navbar {
+      background-color: var(--primary-dark) !important;
+    }
+    .navbar-brand, 
+    .navbar-nav .nav-link {
+      color: #FFFFFF !important;
+    }
+    .navbar-nav .nav-link:hover {
+      color: var(--primary-accent) !important;
+    }
+    /* A imagem da logo agora é fixa e será carregada do arquivo local (ex: /static/logo.png) */
+  
+    /* Layout das Colunas */
     .container-custom {
       margin-top: 20px;
     }
     .column-left {
-      border-right: 1px solid #dee2e6;
-      height: 80vh;
+      border-right: 1px solid var(--neutral-gray);
+      /* Remova height e overflow daqui */
+      flex: 0 0 35%;
+      max-width: 35%;
     }
-    /* Reduzindo a altura do bloco de leilões ativos */
+    /* Mantém apenas na lista a altura e a rolagem */
     .scrollable-list {
-      max-height: 40vh;
+      max-height: 35vh; /* Ajuste conforme desejar (ex: 40vh) */
       overflow-y: auto;
     }
     .column-right {
       height: 80vh;
       overflow-y: auto;
+      flex: 0 0 65%;
+      max-width: 65%;
     }
+    .scrollable-list {
+      max-height: 35vh;
+      overflow-y: auto;
+    }
+  
+    /* Lista de Leilões */
     .list-group-item {
       cursor: pointer;
       transition: background-color 0.2s ease;
+      padding: 10px;
     }
     .list-group-item:hover {
       background-color: #e9ecef;
     }
-    /* Animação de botões */
-    button {
-      transition: transform 0.2s ease, background-color 0.2s ease;
+  
+    .btn-success {
+      background-color: var(--primary-accent);
+      border-color: var(--primary-accent);
     }
-    button:hover {
-      transform: scale(1.05);
+    .btn-success:hover {
+      background-color: #b99651; /* Ajuste para um tom mais escuro/claro */
+      border-color: #b99651;
     }
-    /* Estilo para mensagem fixa em leilão encerrado */
-    .auction-closed-message {
-      font-weight: bold;
-      color: #dc3545;
-      margin-top: 10px;
+
+    .btn-primary {
+      background-color: var(--primary-dark);
+      border-color: var(--primary-dark);
     }
+    .btn-primary:hover {
+      background-color: #000c0f; /* Tom ainda mais escuro para o hover */
+      border-color: #000c0f;
+    }
+
+  
+    /* Círculos de Status */
+    .status-circle {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+      border: 2px solid #fff;
+      box-shadow: 0 0 5px rgba(0,0,0,0.3);
+    }
+    .active {
+      background: var(--primary-accent);
+    }
+    .ending-soon {
+      background: var(--ending-soon);
+    }
+    .closed {
+      background: var(--primary-dark);
+    }
+
+    /* Animação de Pulsar para Atualizações */
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+    .pulse {
+      animation: pulse 1s infinite;
+    }
+  
+    /* Barra de Filtro */
+    .filter-bar {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+    .filter-bar select,
+    .filter-bar input {
+      flex: 1;
+    }
+  
+    /* Estilo para a Logo na Navbar */
+    .navbar-logo {
+      height: 40px;
+      margin-right: 10px;
+    }
+    /* Removemos o campo para alterar a logo, pois a imagem será lida localmente */
   </style>
+  
 </head>
 <body>
-  <!-- Navbar -->
+  <!-- Navbar com campo para atualização de logo -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
-      <a class="navbar-brand" href="#">Leilão Online</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
-              aria-controls="navbarNav" aria-expanded="false" aria-label="Alternar navegação">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-         <ul class="navbar-nav ms-auto">
-            <li class="nav-item">
-              <a class="nav-link" href="#active-auctions">Leilões Ativos</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#create-auction">Criar Leilão</a>
-            </li>
-         </ul>
-      </div>
+      <a class="navbar-brand" href="#">
+        <img id="logo-img" src="/static/logo.png" alt="Logo" class="navbar-logo">
+        Leilão Online
+      </a>
     </div>
   </nav>
+  
 
   <div class="container container-custom">
     <div class="row">
-      <!-- Coluna Esquerda: Leilões ativos e criação -->
+      <!-- Coluna Esquerda: Lista de Leilões e Filtro + Criação -->
       <div class="col-md-4 column-left">
-        <h4 id="active-auctions" class="mb-3">Leilões Ativos</h4>
+        <h4 id="active-auctions" class="mb-3">Leilões</h4>
+        
+        <!-- Formulário de Filtro -->
+        <div class="filter-bar">
+          <select id="filter-status" class="form-control">
+             <option value="all">Todos</option>
+             <option value="active">Ativos</option>
+             <option value="closed">Encerrados</option>
+             <option value="ending-soon">Próximos ao encerramento</option>
+          </select>
+          <input type="text" id="filter-keyword" class="form-control" placeholder="Pesquisar por palavra-chave">
+          <button id="apply-filter" class="btn btn-secondary">Filtrar</button>
+        </div>
+
+        <!-- Lista de Leilões -->
         <div id="auctionsListContainer" class="scrollable-list">
           <ul id="auctionsList" class="list-group"></ul>
         </div>
@@ -88,6 +186,10 @@
           <div class="mb-3">
             <textarea class="form-control" id="description" placeholder="Descrição" required></textarea>
           </div>
+          <!-- Campo para URL da Imagem do Produto -->
+          <div class="mb-3">
+            <input type="text" class="form-control" id="image_url" placeholder="URL da Imagem do Produto (opcional)">
+          </div>
           <div class="mb-3">
             <input type="number" class="form-control" id="starting_price" placeholder="Preço Inicial" required>
           </div>
@@ -98,7 +200,7 @@
         </form>
         <div id="message" class="mt-3"></div>
       </div>
-      <!-- Coluna Direita: Detalhes e lances do leilão selecionado -->
+      <!-- Coluna Direita: Detalhes e Lances do Leilão Selecionado -->
       <div class="col-md-8 column-right">
         <div id="auctionDetailsContainer" class="p-3">
           <h4>Selecione um leilão para ver os detalhes</h4>
